@@ -86,11 +86,7 @@ make_compat() {
     echo "  Making moto_crypto module"
     local COMPAT_SRC_DIR=$TOP/motorola/security/moto_crypto
     local MODULE_DEST_TMP=${PRODUCT_OUT}/moto_crypto
-    local MODULE_DEST=$2/system/lib/modules
-    if [ "${ARCH}" = "x86" ]
-    then
-        MODULE_DEST=${PRODUCT_OUT}/system/lib/modules
-    fi
+    local MODULE_DEST=${PRODUCT_OUT}/system/lib/modules
 
     cd ${COMPAT_SRC_DIR}
 
