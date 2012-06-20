@@ -25,9 +25,6 @@
 
 static DEFINE_PER_CPU(u64[80], msg_schedule);
 
-static bool sha384_registered = false;
-static bool sha512_registered = false;
-
 static inline u64 Ch(u64 x, u64 y, u64 z)
 {
         return z ^ (x & (y ^ z));
@@ -291,7 +288,6 @@ int moto_sha512_start(void)
 	ret = crypto_register_shash(&moto_sha384);
         if (ret)
                 goto out;
-	sha384_registered = true;
 	ret = moto_alg_test("moto-sha384", "sha384", 0, 0);
 	printk (KERN_INFO "sha384 test result: %d\n", ret);
         if (ret)
@@ -299,22 +295,9 @@ int moto_sha512_start(void)
 
 	ret = crypto_register_shash(&moto_sha512);
         if (!ret) {
-		sha512_registered = true;
 		ret = moto_alg_test("moto-sha512", "sha512", 0, 0);
 		printk (KERN_INFO "sha512 test result: %d\n", ret);
 	}
 out:
         return ret;
-}
-
-void moto_sha512_fini(void)
-{
-	if (sha384_registered) {
-        	crypto_unregister_shash(&moto_sha384);
-		sha384_registered = false;
-	}
-	if (sha512_registered) {
-        	crypto_unregister_shash(&moto_sha512);
-		sha512_registered = false;
-	}
 }

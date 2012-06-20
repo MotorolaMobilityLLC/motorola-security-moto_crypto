@@ -27,8 +27,6 @@
 
 #include "moto_testmgr.h"
 
-static bool hmac_registered = false;
-
 struct moto_hmac_ctx {
 	struct crypto_shash *hash;
 };
@@ -267,7 +265,6 @@ int moto_hmac_start(void)
 	err = crypto_register_template(&moto_hmac_tmpl);
 	printk (KERN_INFO "moto_hmac register result: %d\n", err);
 	if (!err) {
-		hmac_registered = true;
 		err = moto_alg_test("moto_hmac(moto-sha1)", "moto_hmac(moto-sha1)", 0, 0);
 		printk (KERN_INFO "moto_hmac(moto-sha1) test result: %d\n", err);
 	}
@@ -289,12 +286,4 @@ int moto_hmac_start(void)
 	}
 
 	return err;
-}
-
-void moto_hmac_fini(void)
-{
-	if (hmac_registered) {
-		crypto_unregister_template(&moto_hmac_tmpl);
-		hmac_registered = false;
-	}
 }
