@@ -44,5 +44,3 @@ extern char* fault_injection_mask_string;
 #define MOTO_CRYPTO_FAILED_INTEGRITY  0x80000000
 
 #endif
-
-

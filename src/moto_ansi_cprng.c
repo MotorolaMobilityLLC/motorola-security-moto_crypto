@@ -34,8 +34,6 @@
 #define PRNG_FIXED_SIZE 0x1
 #define PRNG_NEED_RESET 0x2
 
-static bool rng_registered = false;
-
 /*
  * Note: DT is our counter value
  *	 I is our intermediate value
@@ -452,17 +450,8 @@ int moto_prng_init(void)
 	rc = crypto_register_alg(&moto_fips_rng_alg);
 	printk (KERN_INFO "moto_ansi_cprng register result: %d\n", rc);
 	if (!rc) {
-		rng_registered = true;
 		rc = moto_alg_test("moto_fips_ansi_cprng", "ansi_cprng", 0, 0);
 		printk (KERN_INFO "moto_ansi_cprng test result: %d\n", rc);
 	} 
 	return rc;
-}
-
-void moto_prng_mod_fini(void)
-{
-	if (rng_registered) {
-		crypto_unregister_alg(&moto_fips_rng_alg);
-		rng_registered = false;
-	}
 }
