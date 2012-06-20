@@ -29,9 +29,6 @@
 #define ROL(x, r) ((x) = rol32((x), (r)))
 #define ROR(x, r) ((x) = ror32((x), (r)))
 
-static bool ecb_registered = false;
-static bool cbc_registered = false;
-
 struct moto_des3_ede_ctx {
 	u32 expkey[DES3_EDE_EXPKEY_WORDS];
 };
@@ -1123,7 +1120,6 @@ int moto_tdes_start(void)
 	ret = crypto_register_alg(&moto_ecb_des3_ede_alg);
 	printk (KERN_INFO "ecb(des3) register result: %d\n", ret);
 	if (!ret) {
-		ecb_registered = true;
 		ret = moto_alg_test("moto-des3-ecb", "ecb(des3_ede)", 0, 0);
 		printk (KERN_INFO "ecb(des3_ede) test result: %d\n", ret);
 		if (ret) {
@@ -1136,22 +1132,9 @@ int moto_tdes_start(void)
 	ret = crypto_register_alg(&moto_cbc_des3_ede_alg);
 	printk (KERN_INFO "cbc(des3) register result: %d\n", ret);
 	if (!ret) {
-		cbc_registered = true;
 		ret = moto_alg_test("moto-des3-cbc", "cbc(des3_ede)", 0, 0);
 		printk (KERN_INFO "cbc(des3_ede) test result: %d\n", ret);
 	}
 out:
 	return ret;
-}
-
-void moto_tdes_fini(void)
-{
-	if (ecb_registered) {
-		crypto_unregister_alg(&moto_ecb_des3_ede_alg);
-		ecb_registered = false;
-	}
-	if (cbc_registered) {
-		crypto_unregister_alg(&moto_cbc_des3_ede_alg);
-		cbc_registered = false;
-	}
 }

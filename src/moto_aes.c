@@ -64,10 +64,6 @@ static inline u8 byte(const u32 x, const unsigned n)
 	return x >> (n << 3);
 }
 
-static bool ecb_registered = false;
-static bool cbc_registered = false;
-static bool ctr_registered = false;
-
 static const u32 moto_rco_tab[10] = { 1, 2, 4, 8, 16, 32, 64, 128, 27, 54 };
 
 const u32 moto_crypto_ft_tab[4][256] = {
@@ -1803,7 +1799,6 @@ int moto_aes_start(void)
 	err = crypto_register_alg(&moto_ecb_aes_alg);
 	printk (KERN_INFO "ecb(aes) register result: %d\n", err);
 	if (!err) {
-		ecb_registered = true;
 		err = moto_alg_test("moto-aes-ecb", "ecb(aes)", 0, 0);
 		printk (KERN_INFO "ecb(aes) test result: %d\n", err);
 		if (err)
@@ -1815,7 +1810,6 @@ int moto_aes_start(void)
 	err = crypto_register_alg(&moto_cbc_aes_alg);
 	printk (KERN_INFO "cbc(aes) register result: %d\n", err);
 	if (!err) {
-		cbc_registered = true;
 		err = moto_alg_test("moto-aes-cbc", "cbc(aes)", 0, 0);
 		printk (KERN_INFO "cbc(aes) test result: %d\n", err);
 		if (err)
@@ -1827,26 +1821,9 @@ int moto_aes_start(void)
 	err = crypto_register_alg(&moto_ctr_aes_alg);
 	printk (KERN_INFO "ctr(aes) register result: %d\n", err);
 	if (!err) {
-		ctr_registered = true;
 		err = moto_alg_test("moto-aes-ctr", "ctr(aes)", 0, 0);
 		printk (KERN_INFO "ctr(aes) test result: %d\n", err);
 	}
 out:
 	return err;
-}
-
-void moto_aes_fini(void)
-{
-	if (ecb_registered) {
-		crypto_unregister_alg(&moto_ecb_aes_alg);
-		ecb_registered = false;
-	}
-	if (cbc_registered) {
-		crypto_unregister_alg(&moto_cbc_aes_alg);
-		cbc_registered = false;
-	}
-	if (ctr_registered) {
-		crypto_unregister_alg(&moto_ctr_aes_alg);
-		ctr_registered = false;
-	}
 }

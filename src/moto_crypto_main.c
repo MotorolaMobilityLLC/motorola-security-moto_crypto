@@ -260,17 +260,6 @@ abort:
 }
 #endif
 
-/* Finalizes all algorithms in the module */
-static void finalize_algorithms(void) {
-	moto_aes_fini();
-	moto_tdes_fini();
-	moto_sha1_fini();
-	moto_sha256_fini();
-	moto_sha512_fini();
-	moto_hmac_fini();
-	moto_prng_mod_fini();
-}
-
 /* Module entry point */
 static int __init moto_crypto_init(void)
 {
@@ -369,9 +358,8 @@ static int __init moto_crypto_init(void)
 	       "moto_crypto_main: moto_crypto_init successful initialization\n");
 
 out:
-	if (failures) {
-		finalize_algorithms();
-	}
+	printk(KERN_INFO
+	       "failures: %0x\n", failures);
 	diff = (long)jiffies - (long)start_jiffies;
 	printk(KERN_INFO "moto_crypto_main: Time to init: %ld msec\n", 
 	       diff * 1000 / HZ);
@@ -383,7 +371,6 @@ static void __exit moto_crypto_fini(void)
 {
 	printk(KERN_INFO "moto_crypto_fini\n");
 	class_unregister(&moto_crypto_class);
-	finalize_algorithms();
 }
 
 
