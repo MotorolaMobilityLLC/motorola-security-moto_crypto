@@ -88,11 +88,16 @@ make_compat() {
     local MODULE_DEST_TMP=${PRODUCT_OUT}/moto_crypto
     local MODULE_DEST=${PRODUCT_OUT}/system/lib/modules
 
-    cd ${COMPAT_SRC_DIR}
-
     rm -rf ${MODULE_DEST_TMP}
-    mkdir -p ${MODULE_DEST_TMP};
+    mkdir -p ${MODULE_DEST_TMP}/src
+    mkdir -p ${MODULE_DEST_TMP}/include
     mkdir -p ${MODULE_DEST};
+    cp -r ${COMPAT_SRC_DIR}/src/* ${MODULE_DEST_TMP}/src
+    cp -r ${COMPAT_SRC_DIR}/include/* ${MODULE_DEST_TMP}/include
+    cp ${COMPAT_SRC_DIR}/Makefile ${MODULE_DEST_TMP}
+
+    cd ${MODULE_DEST_TMP}
+
     make ARCH=${ARCH} INSTALL_MOD_STRIP=--strip-unneeded KLIB=${MODULE_DEST_TMP} KLIB_BUILD=${KERNEL_BUILD_DIR} install-modules
     exit_on_error $? quiet
 
