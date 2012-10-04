@@ -7,7 +7,12 @@ TGT_DEVICE = $(TARGET_DEVICE)
 
 TGT_ARCH = $(TARGET_ARCH)
 
-TGT_KERNEL_INT = $(KERNEL_OUT)
+# Qualcomm and intel builds use KERNEL_OUT variablem, and OMAP uses KERNEL_BUILD_DIR
+ifneq ($(KERNEL_OUT),)
+  TGT_KERNEL_INT = $(KERNEL_OUT)
+else
+  TGT_KERNEL_INT = $(KERNEL_BUILD_DIR)
+endif
 
 TGT_OUT = $(TARGET_OUT)
 
