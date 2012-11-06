@@ -26,6 +26,7 @@
 #include <linux/string.h>
 
 #include "moto_testmgr.h"
+#include "moto_crypto_util.h"
 
 struct moto_hmac_ctx {
 	struct crypto_shash *hash;
@@ -180,6 +181,13 @@ static int moto_hmac_init_tfm(struct crypto_tfm *tfm)
 static void moto_hmac_exit_tfm(struct crypto_tfm *tfm)
 {
 	struct moto_hmac_ctx *ctx = moto_hmac_ctx(__crypto_shash_cast(tfm));
+
+	memset(ctx->hash->base.__crt_ctx, 0, ctx->hash->base.__crt_alg->cra_ctxsize);
+
+#ifdef CONFIG_CRYPTO_MOTOROLA_SHOW_ZEROIZATION
+	printk(KERN_INFO "HMAC key after zeroization:\n");
+	moto_hexdump((unsigned char *)(ctx->hash->base.__crt_ctx), ctx->hash->base.__crt_alg->cra_ctxsize);
+#endif
 	crypto_free_shash(ctx->hash);
 }
 
