@@ -30,6 +30,7 @@
 
 #include "moto_testmgr.h"
 #include "moto_crypto_main.h"
+#include "moto_crypto_util.h"
 
 /*
  * Need slab memory for testing (size in number of pages).
@@ -1510,13 +1511,6 @@ struct moto_alg_test_desc {
 
 static unsigned int 
 MOTO_IDX[8] = { IDX1, IDX2, IDX3, IDX4, IDX5, IDX6, IDX7, IDX8 };
-
-static void moto_hexdump(unsigned char *buf, unsigned int len)
-{
-	print_hex_dump(KERN_CONT, "", DUMP_PREFIX_OFFSET,
-			16, 1,
-			buf, len, false);
-}
 
 static void moto_tcrypt_complete(struct crypto_async_request *req, int err)
 {
