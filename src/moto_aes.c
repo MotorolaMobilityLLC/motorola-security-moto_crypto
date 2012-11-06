@@ -1724,6 +1724,18 @@ static int moto_ctr_aes_operate(struct blkcipher_desc *desc,
 	return err;
 }
 
+static void moto_aes_exit(struct crypto_tfm *tfm)
+{
+	struct moto_crypto_aes_ctx *ctx = crypto_tfm_ctx(tfm);
+
+	memset(ctx, 0, sizeof (*ctx));
+#ifdef CONFIG_CRYPTO_MOTOROLA_SHOW_ZEROIZATION
+	printk(KERN_INFO "AES key after zeroization:\n");
+	moto_hexdump((unsigned char *)ctx, sizeof(*ctx));
+#endif
+
+}
+
 static struct crypto_alg moto_ecb_aes_alg = {
 	.cra_name	=	"ecb(aes)",
 	.cra_driver_name=	"moto-aes-ecb",
@@ -1735,6 +1747,7 @@ static struct crypto_alg moto_ecb_aes_alg = {
 	.cra_alignmask	=	AES_ALIGN_MASK,
 	.cra_module	=	THIS_MODULE,
 	.cra_list	=	LIST_HEAD_INIT(moto_ecb_aes_alg.cra_list),
+        .cra_exit       =       moto_aes_exit,
 	.cra_u			=	{
 		.blkcipher = {
 			.min_keysize	= AES_MIN_KEY_SIZE,
@@ -1757,6 +1770,7 @@ static struct crypto_alg moto_cbc_aes_alg = {
 	.cra_alignmask	=	AES_ALIGN_MASK,
 	.cra_module	=	THIS_MODULE,
 	.cra_list	=	LIST_HEAD_INIT(moto_cbc_aes_alg.cra_list),
+        .cra_exit       =       moto_aes_exit,
 	.cra_u			=	{
 		.blkcipher = {
 			.min_keysize	= AES_MIN_KEY_SIZE,
@@ -1780,6 +1794,7 @@ static struct crypto_alg moto_ctr_aes_alg = {
 	.cra_alignmask	=	AES_ALIGN_MASK,
 	.cra_module	=	THIS_MODULE,
 	.cra_list	=	LIST_HEAD_INIT(moto_ctr_aes_alg.cra_list),
+        .cra_exit       =       moto_aes_exit,
 	.cra_u			=	{
 		.blkcipher = {
 			.min_keysize	= AES_MIN_KEY_SIZE,
