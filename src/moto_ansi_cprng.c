@@ -21,6 +21,7 @@
 #include <linux/string.h>
 
 #include "moto_testmgr.h"
+#include "moto_crypto_util.h"
 
 #define DEFAULT_PRNG_KEY "0123456789abcdef"
 #define DEFAULT_PRNG_KSZ 16
@@ -357,7 +358,15 @@ static int moto_cprng_init(struct crypto_tfm *tfm)
 
 static void moto_cprng_exit(struct crypto_tfm *tfm)
 {
-	moto_free_prng_context(crypto_tfm_ctx(tfm));
+	struct moto_prng_context *ctx = crypto_tfm_ctx(tfm);
+
+	moto_free_prng_context(ctx);
+	memset(ctx->V, 0, DEFAULT_BLK_SZ);
+#ifdef CONFIG_CRYPTO_MOTOROLA_SHOW_ZEROIZATION
+	printk(KERN_INFO "PRNG seed after zeroization:\n");
+	moto_hexdump(ctx->V, DEFAULT_BLK_SZ);
+#endif
+
 }
 
 int moto_cprng_get_random(struct crypto_rng *tfm, u8 *rdata,
@@ -386,6 +395,9 @@ static int moto_cprng_reset(struct crypto_rng *tfm, u8 *seed,
 
 	if (slen >= (2 * DEFAULT_BLK_SZ + DEFAULT_PRNG_KSZ))
 		dt = key + DEFAULT_PRNG_KSZ;
+
+	if (!memcmp(seed, key, DEFAULT_BLK_SZ)) 
+		return -EINVAL;
 
 	moto_reset_prng_context(prng, key, DEFAULT_PRNG_KSZ, seed, dt);
 

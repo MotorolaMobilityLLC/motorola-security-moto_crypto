@@ -1074,6 +1074,18 @@ static int moto_cbc_des3_ede_decrypt(struct blkcipher_desc *desc,
 	return err;
 }
 
+static void moto_tdes_exit(struct crypto_tfm *tfm)
+{
+	struct moto_des3_ede_ctx *ctx = crypto_tfm_ctx(tfm);
+
+	memset(ctx, 0, sizeof (*ctx));
+#ifdef CONFIG_CRYPTO_MOTOROLA_SHOW_ZEROIZATION
+	printk(KERN_INFO "TDES key after zeroization:\n");
+	moto_hexdump((unsigned char *)ctx, sizeof(*ctx));
+#endif
+
+}
+
 static struct crypto_alg moto_ecb_des3_ede_alg = {
 	.cra_name	=	"ecb(des3_ede)",
 	.cra_driver_name=	"moto-des3-ecb",
@@ -1085,6 +1097,7 @@ static struct crypto_alg moto_ecb_des3_ede_alg = {
 	.cra_module	=	THIS_MODULE,
 	.cra_alignmask	=	3,
 	.cra_list	=	LIST_HEAD_INIT(moto_ecb_des3_ede_alg.cra_list),
+        .cra_exit       =       moto_tdes_exit,
 	.cra_u		=	{ .blkcipher = {
 	.min_keysize 	=	DES3_EDE_KEY_SIZE,
 	.max_keysize	=	DES3_EDE_KEY_SIZE,
@@ -1104,6 +1117,7 @@ static struct crypto_alg moto_cbc_des3_ede_alg = {
 	.cra_module	=	THIS_MODULE,
 	.cra_alignmask	=	3,
 	.cra_list	=	LIST_HEAD_INIT(moto_cbc_des3_ede_alg.cra_list),
+        .cra_exit       =       moto_tdes_exit,
 	.cra_u		=	{ .blkcipher = {
 	.min_keysize 	=	DES3_EDE_KEY_SIZE,
 	.max_keysize	=	DES3_EDE_KEY_SIZE,

@@ -101,7 +101,7 @@ make_compat() {
     make ARCH=${ARCH} INSTALL_MOD_STRIP=--strip-unneeded KLIB=${MODULE_DEST_TMP} KLIB_BUILD=${KERNEL_BUILD_DIR} install-modules
     exit_on_error $? quiet
 
-    find ${MODULE_DEST_TMP} -name *.ko -exec cp -vf {} ${MODULE_DEST} \;
+    find ${MODULE_DEST_TMP} -name "*.ko" -exec cp -vf {} ${MODULE_DEST} \;
     exit_on_error $? quiet
 
     echo " Generating moto_crypto HMAC"

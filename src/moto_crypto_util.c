@@ -1,3 +1,4 @@
+#include <linux/kernel.h>
 #include <asm/byteorder.h>
 #include "moto_crypto_util.h"
 
@@ -44,4 +45,11 @@ void moto_crypto_xor(u8 *dst, const u8 *src, unsigned int size)
 		*a++ ^= *b++;
 
 	moto_crypto_xor_byte((u8 *)a, (u8 *)b, size);
+}
+
+void moto_hexdump(unsigned char *buf, unsigned int len)
+{
+	print_hex_dump(KERN_CONT, "", DUMP_PREFIX_OFFSET,
+			16, 1,
+			buf, len, false);
 }
