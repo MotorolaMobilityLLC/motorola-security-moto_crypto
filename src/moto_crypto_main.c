@@ -6,6 +6,8 @@
 #include <linux/jiffies.h>
 #include <linux/scatterlist.h>
 #include <linux/err.h>
+#include <linux/sort.h>
+#include <linux/elf.h>
 
 #include "moto_crypto_main.h"
 
@@ -19,6 +21,19 @@ extern int moto_prng_init(void);
 extern void moto_prng_mod_fini(void);
 
 static char *moto_integrity_hmac_sha256_expected_value;
+
+struct section_header_data
+{
+	unsigned char* name;
+	unsigned long address;
+	unsigned int size;
+};
+
+struct elf_section_headers
+{
+	struct section_header_data* sect_hdrs;
+	unsigned int nsects;
+};
 
 /**
  * Holds FIPS crypto POST result:
@@ -35,11 +50,178 @@ unsigned char const moto_integrity_hmac_sha256_key[] = {
 	};
 
 /**
+ * Get the elf sections that are eligible for hash calculation
+ * based solely on flags. Considered ones are sections that have
+ * SHF_ALLOC and are not SHT_NOBITS.
+ * The eligible sections have their information stored in the
+ * elf_section_headers struct, that shall be previously allocated
+ * by the caller.
+ */
+static int parse_elf_sections(Elf_Ehdr* elf_ehdr,
+							unsigned long elf_ehdr_len,
+							struct elf_section_headers* parsed_sections)
+{
+	int error = 0;
+	Elf_Shdr *sechdrs;
+	char *secstrings;
+	struct section_header_data *curr_sec_hdr;
+	struct section_header_data *sec_hdrs;
+	int num_valid_hdrs = 0;
+	int i;
+
+	/* Set up the convenience variables */
+	sechdrs = (void*)elf_ehdr + elf_ehdr->e_shoff;
+	secstrings = (void*)elf_ehdr + sechdrs[elf_ehdr->e_shstrndx].sh_offset;
+
+	/* This should always be true, but let's be sure. */
+	sechdrs[0].sh_addr = 0;
+
+	for (i = 1; i < elf_ehdr->e_shnum; i++) {
+		Elf_Shdr *shdr = &sechdrs[i];
+
+		/* Mark all sections sh_addr with their address in the
+		   temporary image. */
+		shdr->sh_addr = (size_t)elf_ehdr + shdr->sh_offset;
+	}
+
+	sec_hdrs = kzalloc(sizeof(struct section_header_data) * elf_ehdr->e_shnum, GFP_KERNEL);
+	if (IS_ERR_OR_NULL(sec_hdrs)) {
+		error = -ENOMEM;
+		goto abort;
+	}
+
+	curr_sec_hdr = sec_hdrs;
+
+	/* Go through all sections and select those that are SHF_ALLOC and not
+	 * SHT_NOBITS. */
+	for (i = 0; i < elf_ehdr->e_shnum; i++) {
+		Elf_Shdr *shdr = &sechdrs[i];
+
+		if ((!(shdr->sh_flags & SHF_ALLOC)) ||
+			(shdr->sh_type == SHT_NOBITS))
+			continue;
+
+		curr_sec_hdr->name = secstrings + shdr->sh_name;
+		curr_sec_hdr->address = shdr->sh_addr;
+		curr_sec_hdr->size = shdr->sh_size;
+		curr_sec_hdr++;
+		num_valid_hdrs++;
+	}
+
+	parsed_sections->sect_hdrs = sec_hdrs;
+	parsed_sections->nsects = num_valid_hdrs;
+
+  abort:
+
+	return error;
+}
+
+/**
  * Store of whether Motorola FIPS crypto feature is enabled:
  * 0: disabled (default value)
  * 1: enabled
  */
 static int fips_enabled = 0;
+
+
+static int section_header_data_name_cmp(const void* a, const void* b)
+{
+	const struct section_header_data* section_a = a;
+	const struct section_header_data* section_b = b;
+
+	return strcmp(section_a->name, section_b->name);
+}
+
+/**
+ * Organize the module sections based on their names, so
+ * we are able to calculate the hash always using the same
+ * data order.
+ */
+static int moto_crypto_canonicalize(struct module *mod,
+									struct elf_section_headers* elf_sections)
+{
+	void *canonicalized_buffer;
+	char *data;
+	struct section_header_data *curr_sec_hdr;
+
+	unsigned long canonicalized_buffer_size = 0;
+	unsigned int loop;
+	int error = 0;
+
+	/* 1 - Allocate a buffer to store the canonicalized section data */
+	canonicalized_buffer = kmalloc(mod->raw_binary_size, GFP_KERNEL);
+	if (IS_ERR_OR_NULL(canonicalized_buffer)) {
+		error = -ENOMEM;
+		goto abort;
+	}
+
+	/* 2 - Sort the sections in alphabetical order */
+	sort(elf_sections->sect_hdrs,
+		 elf_sections->nsects,
+		 sizeof(struct section_header_data),
+		 section_header_data_name_cmp,
+		 NULL);
+
+	/* 3 - Move the sections to the canonicalized buffer */
+
+	/* At this stage we remove sections that don't add any value to the hash
+	 * security or that are modified due to kernel changes.
+	 * Below is a description of each one of the removed sections:
+	 *
+	 *  .symtab - main symbol table used in compile-time linking or
+	 *            runtime debugging.
+	 *  .strtab - NULL-terminated strings of names of symbols in
+	 *            .symtab section.
+	 *  Both .symtab and strtab can be stripped from the ELF file
+	 *  without causing any issues in code execution.
+	 *
+	 *  .modinfo - module info section. It contains the kernel release
+	 *             number for which the module was built and it
+	 *             describes the form of the module's parameters.
+	 *             Mainly used by insmod. Since it varies depending
+	 *             on the kernel release number, we remove it from
+	 *             the valid sections group.
+	 *
+	 *  .gnu.linkonce.this_module - stores the struct module. This is
+	 *             used by the sys_init_module() during module
+	 *             initialization. Since this is used just for
+	 *             initialization purposes, we remove it from the
+	 *             valid sections group.
+	 *
+	 *  .note.gnu.build-id - section used to store a unique build id
+	 *             for the kernel and its modules. Since this changes
+	 *             for every different kernel built, we remove it from
+	 *             the valid sections group.
+	 */
+	canonicalized_buffer_size = 0;
+	curr_sec_hdr = elf_sections->sect_hdrs;
+	data = canonicalized_buffer;
+	for (loop = 0; loop < elf_sections->nsects; loop++) {
+		if (curr_sec_hdr->size > 0 &&
+			(strcmp(curr_sec_hdr->name,".strtab") != 0 &&
+			 strcmp(curr_sec_hdr->name,".symtab") != 0 &&
+			 strcmp(curr_sec_hdr->name,".modinfo") != 0 &&
+			 strcmp(curr_sec_hdr->name,"__versions") != 0 &&
+			 strcmp(curr_sec_hdr->name,".gnu.linkonce.this_module") != 0 &&
+			 strcmp(curr_sec_hdr->name,".note.gnu.build-id") != 0)) {
+			memcpy(data, (void *)curr_sec_hdr->address, curr_sec_hdr->size);
+			data += curr_sec_hdr->size;
+			canonicalized_buffer_size += curr_sec_hdr->size;
+		}
+		curr_sec_hdr++;
+	}
+
+	/* 4 - Due to memory constraints, we will reuse the original buffer to
+	 * copy the canonicalized one.
+	 */
+	mod->raw_binary_size = canonicalized_buffer_size;
+	memcpy(mod->raw_binary_ptr, canonicalized_buffer, canonicalized_buffer_size);
+
+  abort:
+	if (canonicalized_buffer != NULL)
+		kfree(canonicalized_buffer);
+	return error;
+} /* end moto_crypto_canonicalize() */
 
 /**
  * Show handler for moto_crypto_class attributes
@@ -152,13 +334,15 @@ static struct scatterlist *vmalloc_to_sg(unsigned char *const buf,
 	sg_array = kcalloc(page_count, sizeof(*sg_array), GFP_KERNEL);
 	if (sg_array == NULL)
 		goto abort;
+
 	sg_init_table(sg_array, page_count);
 	for (i = 0, ptr = (void *)((unsigned long)buf & PAGE_MASK);
-	     ptr < buf + bytes;
-	     i++, ptr += PAGE_SIZE) {
+		 ptr < buf + bytes;
+		 i++, ptr += PAGE_SIZE) {
 		pg = vmalloc_to_page(ptr);
 		if (pg == NULL)
 			goto abort;
+
 		sg_set_page(&sg_array[i], pg, PAGE_SIZE, 0);
 	}
 	/* Rectify the first page which may be partial. The last page may
@@ -181,6 +365,8 @@ static int self_test_integrity(const char *alg_name, struct module *mod)
 	size_t digest_length;
 	size_t const key_length = sizeof(moto_integrity_hmac_sha256_key);
 	int error;
+	struct elf_section_headers elf_sections;
+	elf_sections.sect_hdrs = NULL;
 
 	if (mod->raw_binary_ptr == NULL)
 		return -ENXIO;
@@ -212,6 +398,22 @@ static int self_test_integrity(const char *alg_name, struct module *mod)
 	if (error) {
 		printk(KERN_ERR "crypto_hash_setkey(%s) failed: %d\n",
 		      alg_name, error);
+		goto abort;
+	}
+
+	error = parse_elf_sections(mod->raw_binary_ptr,
+							 mod->raw_binary_size,
+							 &elf_sections);
+	if (error) {
+		printk(KERN_ERR "parse_elf_sections() failed: %d\n",
+		       error);
+		goto abort;
+	}
+
+	error = moto_crypto_canonicalize(mod, &elf_sections);
+	if (error) {
+		printk(KERN_ERR "moto_crypto_canonicalize() failed: %d\n",
+		       error);
 		goto abort;
 	}
 
@@ -256,9 +458,13 @@ abort:
 		kfree(sg);
 	if (!IS_ERR_OR_NULL(desc.tfm))
 		crypto_free_hash(desc.tfm);
+    if (elf_sections.sect_hdrs != NULL)
+		kfree(elf_sections.sect_hdrs);
 	return error == -ENOMEM ? error : -EIO;
 }
 #endif
+
+
 
 /* Module entry point */
 static int __init moto_crypto_init(void)
