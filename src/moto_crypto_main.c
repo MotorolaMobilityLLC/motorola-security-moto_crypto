@@ -278,8 +278,6 @@ static struct class moto_crypto_class = {
 	.class_attrs = moto_crypto_class_attrs,
 };
 
-#if defined(CONFIG_MODULE_EXTRA_COPY) && defined(MODULE)
-
 static ssize_t scan_hex(unsigned char *const buf,
 			size_t buf_size,
 			const char *const hex)
@@ -462,9 +460,6 @@ abort:
 		kfree(elf_sections.sect_hdrs);
 	return error == -ENOMEM ? error : -EIO;
 }
-#endif
-
-
 
 /* Module entry point */
 static int __init moto_crypto_init(void)
@@ -535,7 +530,6 @@ static int __init moto_crypto_init(void)
 		goto out;
 	}
 
-#if defined(CONFIG_MODULE_EXTRA_COPY) && defined(MODULE)
 	switch (self_test_integrity("moto_hmac(moto-sha256)", &__this_module)) {
 	case 0:
 		printk(KERN_INFO
@@ -558,7 +552,6 @@ static int __init moto_crypto_init(void)
 		failures |= MOTO_CRYPTO_FAILED_INTEGRITY;
 		goto out;
 	}
-#endif
 
 	printk(KERN_INFO
 	       "moto_crypto_main: moto_crypto_init successful initialization\n");
