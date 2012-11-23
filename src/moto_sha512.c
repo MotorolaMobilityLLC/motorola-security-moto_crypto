@@ -22,22 +22,26 @@
 #include <asm/byteorder.h>
 
 #include "moto_testmgr.h"
+#include "moto_crypto_util.h"
+
+static int moto_sha384_registered = 0;
+static int moto_sha512_registered = 0;
 
 static DEFINE_PER_CPU(u64[80], msg_schedule);
 
 static inline u64 Ch(u64 x, u64 y, u64 z)
 {
-        return z ^ (x & (y ^ z));
+    return z ^ (x & (y ^ z));
 }
 
 static inline u64 Maj(u64 x, u64 y, u64 z)
 {
-        return (x & y) | (z & (x | y));
+    return (x & y) | (z & (x | y));
 }
 
 static inline u64 RORu64(u64 x, u64 y)
 {
-        return (x >> y) | (x << (64 - y));
+    return (x >> y) | (x << (64 - y));
 }
 
 static const u64 sha512_K[80] = {
@@ -77,227 +81,251 @@ static const u64 sha512_K[80] = {
 
 static inline void LOAD_OP(int I, u64 *W, const u8 *input)
 {
-	W[I] = __be64_to_cpu( ((__be64*)(input))[I] );
+    W[I] = __be64_to_cpu( ((__be64*)(input))[I] );
 }
 
 static inline void BLEND_OP(int I, u64 *W)
 {
-	W[I] = s1(W[I-2]) + W[I-7] + s0(W[I-15]) + W[I-16];
+    W[I] = s1(W[I-2]) + W[I-7] + s0(W[I-15]) + W[I-16];
 }
 
 static void
 moto_sha512_transform(u64 *state, const u8 *input)
 {
-	u64 a, b, c, d, e, f, g, h, t1, t2;
+    u64 a, b, c, d, e, f, g, h, t1, t2;
 
-	int i;
-	u64 *W = get_cpu_var(msg_schedule);
+    int i;
+    u64 *W = get_cpu_var(msg_schedule);
 
-	/* load the input */
-        for (i = 0; i < 16; i++)
-                LOAD_OP(i, W, input);
+    /* load the input */
+    for (i = 0; i < 16; i++)
+        LOAD_OP(i, W, input);
 
-        for (i = 16; i < 80; i++) {
-                BLEND_OP(i, W);
-        }
+    for (i = 16; i < 80; i++) {
+        BLEND_OP(i, W);
+    }
 
-	/* load the state into our registers */
-	a=state[0];   b=state[1];   c=state[2];   d=state[3];
-	e=state[4];   f=state[5];   g=state[6];   h=state[7];
+    /* load the state into our registers */
+    a=state[0];   b=state[1];   c=state[2];   d=state[3];
+    e=state[4];   f=state[5];   g=state[6];   h=state[7];
 
-	/* now iterate */
-	for (i=0; i<80; i+=8) {
-		t1 = h + e1(e) + Ch(e,f,g) + sha512_K[i  ] + W[i  ];
-		t2 = e0(a) + Maj(a,b,c);    d+=t1;    h=t1+t2;
-		t1 = g + e1(d) + Ch(d,e,f) + sha512_K[i+1] + W[i+1];
-		t2 = e0(h) + Maj(h,a,b);    c+=t1;    g=t1+t2;
-		t1 = f + e1(c) + Ch(c,d,e) + sha512_K[i+2] + W[i+2];
-		t2 = e0(g) + Maj(g,h,a);    b+=t1;    f=t1+t2;
-		t1 = e + e1(b) + Ch(b,c,d) + sha512_K[i+3] + W[i+3];
-		t2 = e0(f) + Maj(f,g,h);    a+=t1;    e=t1+t2;
-		t1 = d + e1(a) + Ch(a,b,c) + sha512_K[i+4] + W[i+4];
-		t2 = e0(e) + Maj(e,f,g);    h+=t1;    d=t1+t2;
-		t1 = c + e1(h) + Ch(h,a,b) + sha512_K[i+5] + W[i+5];
-		t2 = e0(d) + Maj(d,e,f);    g+=t1;    c=t1+t2;
-		t1 = b + e1(g) + Ch(g,h,a) + sha512_K[i+6] + W[i+6];
-		t2 = e0(c) + Maj(c,d,e);    f+=t1;    b=t1+t2;
-		t1 = a + e1(f) + Ch(f,g,h) + sha512_K[i+7] + W[i+7];
-		t2 = e0(b) + Maj(b,c,d);    e+=t1;    a=t1+t2;
-	}
+    /* now iterate */
+    for (i=0; i<80; i+=8) {
+        t1 = h + e1(e) + Ch(e,f,g) + sha512_K[i  ] + W[i  ];
+        t2 = e0(a) + Maj(a,b,c);    d+=t1;    h=t1+t2;
+        t1 = g + e1(d) + Ch(d,e,f) + sha512_K[i+1] + W[i+1];
+        t2 = e0(h) + Maj(h,a,b);    c+=t1;    g=t1+t2;
+        t1 = f + e1(c) + Ch(c,d,e) + sha512_K[i+2] + W[i+2];
+        t2 = e0(g) + Maj(g,h,a);    b+=t1;    f=t1+t2;
+        t1 = e + e1(b) + Ch(b,c,d) + sha512_K[i+3] + W[i+3];
+        t2 = e0(f) + Maj(f,g,h);    a+=t1;    e=t1+t2;
+        t1 = d + e1(a) + Ch(a,b,c) + sha512_K[i+4] + W[i+4];
+        t2 = e0(e) + Maj(e,f,g);    h+=t1;    d=t1+t2;
+        t1 = c + e1(h) + Ch(h,a,b) + sha512_K[i+5] + W[i+5];
+        t2 = e0(d) + Maj(d,e,f);    g+=t1;    c=t1+t2;
+        t1 = b + e1(g) + Ch(g,h,a) + sha512_K[i+6] + W[i+6];
+        t2 = e0(c) + Maj(c,d,e);    f+=t1;    b=t1+t2;
+        t1 = a + e1(f) + Ch(f,g,h) + sha512_K[i+7] + W[i+7];
+        t2 = e0(b) + Maj(b,c,d);    e+=t1;    a=t1+t2;
+    }
 
-	state[0] += a; state[1] += b; state[2] += c; state[3] += d;
-	state[4] += e; state[5] += f; state[6] += g; state[7] += h;
+    state[0] += a; state[1] += b; state[2] += c; state[3] += d;
+    state[4] += e; state[5] += f; state[6] += g; state[7] += h;
 
-	/* erase our data */
-	a = b = c = d = e = f = g = h = t1 = t2 = 0;
-	memset(W, 0, sizeof(__get_cpu_var(msg_schedule)));
-	put_cpu_var(msg_schedule);
+    /* erase our data */
+    a = b = c = d = e = f = g = h = t1 = t2 = 0;
+    memset(W, 0, sizeof(__get_cpu_var(msg_schedule)));
+    put_cpu_var(msg_schedule);
 }
 
 static int
 moto_sha512_init(struct shash_desc *desc)
 {
-	struct moto_sha512_state *sctx = shash_desc_ctx(desc);
+    struct moto_sha512_state *sctx = shash_desc_ctx(desc);
 
-	sctx->state[0] = SHA512_H0;
-	sctx->state[1] = SHA512_H1;
-	sctx->state[2] = SHA512_H2;
-	sctx->state[3] = SHA512_H3;
-	sctx->state[4] = SHA512_H4;
-	sctx->state[5] = SHA512_H5;
-	sctx->state[6] = SHA512_H6;
-	sctx->state[7] = SHA512_H7;
-	sctx->count[0] = sctx->count[1] = 0;
+    sctx->state[0] = SHA512_H0;
+    sctx->state[1] = SHA512_H1;
+    sctx->state[2] = SHA512_H2;
+    sctx->state[3] = SHA512_H3;
+    sctx->state[4] = SHA512_H4;
+    sctx->state[5] = SHA512_H5;
+    sctx->state[6] = SHA512_H6;
+    sctx->state[7] = SHA512_H7;
+    sctx->count[0] = sctx->count[1] = 0;
 
-	return 0;
+    return 0;
 }
 
 static int
 moto_sha384_init(struct shash_desc *desc)
 {
-	struct moto_sha512_state *sctx = shash_desc_ctx(desc);
+    struct moto_sha512_state *sctx = shash_desc_ctx(desc);
 
-	sctx->state[0] = SHA384_H0;
-	sctx->state[1] = SHA384_H1;
-	sctx->state[2] = SHA384_H2;
-	sctx->state[3] = SHA384_H3;
-	sctx->state[4] = SHA384_H4;
-	sctx->state[5] = SHA384_H5;
-	sctx->state[6] = SHA384_H6;
-	sctx->state[7] = SHA384_H7;
-	sctx->count[0] = sctx->count[1] = 0;
+    sctx->state[0] = SHA384_H0;
+    sctx->state[1] = SHA384_H1;
+    sctx->state[2] = SHA384_H2;
+    sctx->state[3] = SHA384_H3;
+    sctx->state[4] = SHA384_H4;
+    sctx->state[5] = SHA384_H5;
+    sctx->state[6] = SHA384_H6;
+    sctx->state[7] = SHA384_H7;
+    sctx->count[0] = sctx->count[1] = 0;
 
-	return 0;
+    return 0;
 }
 
 static int
 moto_sha512_update(struct shash_desc *desc, const u8 *data, unsigned int len)
 {
-	struct moto_sha512_state *sctx = shash_desc_ctx(desc);
+    struct moto_sha512_state *sctx = shash_desc_ctx(desc);
 
-	unsigned int i, index, part_len;
+    unsigned int i, index, part_len;
 
-	/* Compute number of bytes mod 128 */
-	index = sctx->count[0] & 0x7f;
+    /* Compute number of bytes mod 128 */
+    index = sctx->count[0] & 0x7f;
 
-	/* Update number of bytes */
-	if (!(sctx->count[0] += len))
-		sctx->count[1]++;
+    /* Update number of bytes */
+    if (!(sctx->count[0] += len))
+        sctx->count[1]++;
 
-        part_len = 128 - index;
+    part_len = 128 - index;
 
-	/* Transform as many times as possible. */
-	if (len >= part_len) {
-		memcpy(&sctx->buf[index], data, part_len);
-		moto_sha512_transform(sctx->state, sctx->buf);
+    /* Transform as many times as possible. */
+    if (len >= part_len) {
+        memcpy(&sctx->buf[index], data, part_len);
+        moto_sha512_transform(sctx->state, sctx->buf);
 
-		for (i = part_len; i + 127 < len; i+=128)
-			moto_sha512_transform(sctx->state, &data[i]);
+        for (i = part_len; i + 127 < len; i+=128)
+            moto_sha512_transform(sctx->state, &data[i]);
 
-		index = 0;
-	} else {
-		i = 0;
-	}
+        index = 0;
+    } else {
+        i = 0;
+    }
 
-	/* Buffer remaining input */
-	memcpy(&sctx->buf[index], &data[i], len - i);
+    /* Buffer remaining input */
+    memcpy(&sctx->buf[index], &data[i], len - i);
 
-	return 0;
+    return 0;
 }
 
 static int
 moto_sha512_final(struct shash_desc *desc, u8 *hash)
 {
-	struct moto_sha512_state *sctx = shash_desc_ctx(desc);
-        static u8 padding[128] = { 0x80, };
-	__be64 *dst = (__be64 *)hash;
-	__be64 bits[2];
-	unsigned int index, pad_len;
-	int i;
+    struct moto_sha512_state *sctx = shash_desc_ctx(desc);
+    static u8 padding[128] = { 0x80, };
+    __be64 *dst = (__be64 *)hash;
+    __be64 bits[2];
+    unsigned int index, pad_len;
+    int i;
 
-	/* Save number of bits */
-	bits[1] = cpu_to_be64(sctx->count[0] << 3);
-	bits[0] = cpu_to_be64(sctx->count[1] << 3 | sctx->count[0] >> 61);
+    /* Save number of bits */
+    bits[1] = cpu_to_be64(sctx->count[0] << 3);
+    bits[0] = cpu_to_be64(sctx->count[1] << 3 | sctx->count[0] >> 61);
 
-	/* Pad out to 112 mod 128. */
-	index = sctx->count[0] & 0x7f;
-	pad_len = (index < 112) ? (112 - index) : ((128+112) - index);
-	moto_sha512_update(desc, padding, pad_len);
+    /* Pad out to 112 mod 128. */
+    index = sctx->count[0] & 0x7f;
+    pad_len = (index < 112) ? (112 - index) : ((128+112) - index);
+    moto_sha512_update(desc, padding, pad_len);
 
-	/* Append length (before padding) */
-	moto_sha512_update(desc, (const u8 *)bits, sizeof(bits));
+    /* Append length (before padding) */
+    moto_sha512_update(desc, (const u8 *)bits, sizeof(bits));
 
-	/* Store state in digest */
-	for (i = 0; i < 8; i++)
-		dst[i] = cpu_to_be64(sctx->state[i]);
+    /* Store state in digest */
+    for (i = 0; i < 8; i++)
+        dst[i] = cpu_to_be64(sctx->state[i]);
 
-	/* Zeroize sensitive information. */
-	memset(sctx, 0, sizeof(struct moto_sha512_state));
+    /* Zeroize sensitive information. */
+    memset(sctx, 0, sizeof(struct moto_sha512_state));
+#ifdef CONFIG_CRYPTO_MOTOROLA_SHOW_ZEROIZATION
+    printk(KERN_INFO "SHA context after zeroization:\n");
+    moto_hexdump((unsigned char *)(sctx), sizeof *sctx);
+#endif
 
-	return 0;
+    return 0;
 }
 
 static int moto_sha384_final(struct shash_desc *desc, u8 *hash)
 {
-	u8 D[64];
+    u8 D[64];
 
-	moto_sha512_final(desc, D);
+    moto_sha512_final(desc, D);
 
-	memcpy(hash, D, 48);
-	memset(D, 0, 64);
+    memcpy(hash, D, 48);
+    memset(D, 0, 64);
 
-	return 0;
+    return 0;
 }
 
 static struct shash_alg moto_sha512 = {
-	.digestsize	=	SHA512_DIGEST_SIZE,
-	.init		=	moto_sha512_init,
-	.update		=	moto_sha512_update,
-	.final		=	moto_sha512_final,
-	.descsize	=	sizeof(struct moto_sha512_state),
-	.base		=	{
-		.cra_name	=	"sha512",
-		.cra_driver_name=	"moto-sha512",
-		.cra_priority	=	1000,
-		.cra_flags	=	CRYPTO_ALG_TYPE_SHASH,
-		.cra_blocksize	=	SHA512_BLOCK_SIZE,
-		.cra_module	=	THIS_MODULE,
-	}
+        .digestsize = SHA512_DIGEST_SIZE,
+        .init       = moto_sha512_init,
+        .update     = moto_sha512_update,
+        .final      = moto_sha512_final,
+        .descsize   = sizeof(struct moto_sha512_state),
+        .base       = {
+                .cra_name       = "sha512",
+                .cra_driver_name= "moto-sha512",
+                .cra_priority   = 1000,
+                .cra_flags      = CRYPTO_ALG_TYPE_SHASH,
+                .cra_blocksize  = SHA512_BLOCK_SIZE,
+                .cra_module     = THIS_MODULE,
+        }
 };
 
 static struct shash_alg moto_sha384 = {
-	.digestsize	=	SHA384_DIGEST_SIZE,
-	.init		=	moto_sha384_init,
-	.update		=	moto_sha512_update,
-	.final		=	moto_sha384_final,
-	.descsize	=	sizeof(struct moto_sha512_state),
-	.base		=	{
-		.cra_name	=	"sha384",
-		.cra_driver_name=	"moto-sha384",
-		.cra_priority	=	1000,
-		.cra_flags	=	CRYPTO_ALG_TYPE_SHASH,
-		.cra_blocksize	=	SHA384_BLOCK_SIZE,
-		.cra_module	=	THIS_MODULE,
-	}
+        .digestsize = SHA384_DIGEST_SIZE,
+        .init       = moto_sha384_init,
+        .update     = moto_sha512_update,
+        .final      = moto_sha384_final,
+        .descsize   = sizeof(struct moto_sha512_state),
+        .base       = {
+                .cra_name       = "sha384",
+                .cra_driver_name= "moto-sha384",
+                .cra_priority   = 1000,
+                .cra_flags      = CRYPTO_ALG_TYPE_SHASH,
+                .cra_blocksize  = SHA384_BLOCK_SIZE,
+                .cra_module     = THIS_MODULE,
+        }
 };
 
 int moto_sha512_start(void)
 {
-        int ret = 0;
+    int ret = 0;
 
-	ret = crypto_register_shash(&moto_sha384);
-        if (ret)
-                goto out;
-	ret = moto_alg_test("moto-sha384", "sha384", 0, 0);
-	printk (KERN_INFO "sha384 test result: %d\n", ret);
-        if (ret)
-                goto out;
+    ret = crypto_register_shash(&moto_sha384);
+    if (ret)
+        goto out;
+    moto_sha384_registered = 1;
+    ret = moto_alg_test("moto-sha384", "sha384", 0, 0);
+    printk (KERN_INFO "sha384 test result: %d\n", ret);
+    if (ret)
+        goto out;
 
-	ret = crypto_register_shash(&moto_sha512);
-        if (!ret) {
-		ret = moto_alg_test("moto-sha512", "sha512", 0, 0);
-		printk (KERN_INFO "sha512 test result: %d\n", ret);
-	}
-out:
-        return ret;
+    ret = crypto_register_shash(&moto_sha512);
+    if (!ret) {
+        moto_sha512_registered = 1;
+        ret = moto_alg_test("moto-sha512", "sha512", 0, 0);
+        printk (KERN_INFO "sha512 test result: %d\n", ret);
+    }
+    out:
+    return ret;
+}
+
+void moto_sha512_finish(void)
+{
+    int err = 0;
+
+    if (moto_sha384_registered)
+    {
+        err = crypto_unregister_shash(&moto_sha384);
+        moto_sha384_registered = 0;
+    }
+    printk (KERN_INFO "sha384 unregister result: %d\n", err);
+    if (moto_sha512_registered)
+    {
+        err = crypto_unregister_shash(&moto_sha512);
+        moto_sha512_registered = 0;
+    }
+    printk (KERN_INFO "sha512 unregister result: %d\n", err);
 }

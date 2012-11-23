@@ -26,49 +26,49 @@
 
 #include <linux/netlink.h>
 
-#define MAX_DIGEST_SIZE		64
-#define MAX_TAP			8
+#define MAX_DIGEST_SIZE     64
+#define MAX_TAP             8
 
-#define MAX_KEYLEN		56
-#define MAX_IVLEN		32
+#define MAX_KEYLEN          56
+#define MAX_IVLEN           32
 
 struct moto_hash_testvec {
-	/* only used with keyed hash algorithms */
-	char *key;
-	char *plaintext;
-	char *digest;
-	unsigned char tap[MAX_TAP];
-	unsigned char psize;
-	unsigned char np;
-	unsigned char ksize;
+    /* only used with keyed hash algorithms */
+    char *key;
+    char *plaintext;
+    char *digest;
+    unsigned char tap[MAX_TAP];
+    unsigned char psize;
+    unsigned char np;
+    unsigned char ksize;
 };
 
 struct moto_cipher_testvec {
-	char *key;
-	char *iv;
-	char *input;
-	char *result;
-	unsigned short tap[MAX_TAP];
-	int np;
-	unsigned char fail;
-	unsigned char wk; /* weak key flag */
-	unsigned char klen;
-	unsigned short ilen;
-	unsigned short rlen;
+    char *key;
+    char *iv;
+    char *input;
+    char *result;
+    unsigned short tap[MAX_TAP];
+    int np;
+    unsigned char fail;
+    unsigned char wk; /* weak key flag */
+    unsigned char klen;
+    unsigned short ilen;
+    unsigned short rlen;
 };
 
 struct moto_cprng_testvec {
-	char *key;
-	char *dt;
-	char *v;
-	char *result;
-	unsigned char klen;
-	unsigned short dtlen;
-	unsigned short vlen;
-	unsigned short rlen;
-	unsigned short loops;
+    char *key;
+    char *dt;
+    char *v;
+    char *result;
+    unsigned char klen;
+    unsigned short dtlen;
+    unsigned short vlen;
+    unsigned short rlen;
+    unsigned short loops;
 };
 
 int moto_alg_test(const char *driver, const char *alg, u32 type, u32 mask);
 
-#endif	/* _MOTO_CRYPTO_TESTMGR_H */
+#endif  /* _MOTO_CRYPTO_TESTMGR_H */
