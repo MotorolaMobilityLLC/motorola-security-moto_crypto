@@ -78,7 +78,7 @@ def process_file(hash_key, filename):
 
         # Create the right content "hmac_sha256=yyy", yyy is the hmac sha256 value
         # worked out by python hashlib from the file argv[1]
-        params = "hmac_sha256=" + hmac.new(binascii.unhexlify(hash_key), bytes(canonicalized_data), hashlib.sha256).hexdigest() + " fips=1";
+        params = "hmac_sha256=" + hmac.new(binascii.unhexlify(hash_key), bytes(canonicalized_data), hashlib.sha256).hexdigest();
         sys.stdout.write(params)
 
 # Process the given arguments

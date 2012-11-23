@@ -90,9 +90,11 @@ make_compat() {
 
     rm -rf ${MODULE_DEST_TMP}
     mkdir -p ${MODULE_DEST_TMP}/src
+    mkdir -p ${MODULE_DEST_TMP}/test
     mkdir -p ${MODULE_DEST_TMP}/include
     mkdir -p ${MODULE_DEST};
     cp -r ${COMPAT_SRC_DIR}/src/* ${MODULE_DEST_TMP}/src
+    cp -r ${COMPAT_SRC_DIR}/test/* ${MODULE_DEST_TMP}/test
     cp -r ${COMPAT_SRC_DIR}/include/* ${MODULE_DEST_TMP}/include
     cp ${COMPAT_SRC_DIR}/Makefile ${MODULE_DEST_TMP}
 
