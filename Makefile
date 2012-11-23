@@ -33,6 +33,18 @@ moto_crypto-y := \
     src/moto_hmac.o \
     src/moto_ansi_cprng.o
 
+ifeq ($(CONFIG_CRYPTO_MOTOROLA_FIPS_TEST_MODULES),y)
+
+obj-m += moto_crypto_test.o
+moto_crypto_test-y := \
+    test/moto_crypto_test.o
+
+obj-m += moto_crypto_user.o
+moto_crypto_user-y := \
+    test/moto_crypto_user.o
+
+endif
+
 endif
 
 # These exported as they are used by the scripts
