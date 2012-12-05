@@ -77,8 +77,13 @@ init_variables() {
 	BOARD=${custom_board}
 	;;
     esac
-
-    PRODUCT_OUT=${TOP}/out/target/product/${BOARD}
+   #  Modify PRODUCT_OUT defenition to match IKJBOMAP2278's change,
+   #  otherwise this module will be missing when HW_CONFIG is set
+    if [ "${HW_CONFIG}" == "" ]; then
+       PRODUCT_OUT=${TOP}/out/target/product/${BOARD}
+    else
+       PRODUCT_OUT=${TOP}/out/target/product/${BOARD}-${HW_CONFIG}
+    fi
     KERNEL_BUILD_DIR=$3
 }
 
