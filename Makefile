@@ -9,6 +9,10 @@ export KLIB_BUILD ?=	$(KLIB)/build
 
 DESTDIR?=
 
+ifneq ($(TARGET_BUILD_VARIANT), user)
+EXTRA_CFLAGS += -DCONFIG_CRYPTO_MOTOROLA_FAULT_INJECTION
+endif
+
 NOSTDINC_FLAGS := $(CFLAGS)
 
 override EXTRA_CFLAGS += \
@@ -17,8 +21,6 @@ override EXTRA_CFLAGS += \
     -I$(src)/include/
 
 export PWD :=	$(shell pwd)
-
-ifeq ($(CONFIG_CRYPTO_MOTOROLA_FIPS),y)
 
 obj-m += moto_crypto.o
 moto_crypto-y := \
@@ -42,8 +44,6 @@ moto_crypto_test-y := \
 obj-m += moto_crypto_user.o
 moto_crypto_user-y := \
     test/moto_crypto_user.o
-
-endif
 
 endif
 
