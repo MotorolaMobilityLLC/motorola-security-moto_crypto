@@ -55,8 +55,6 @@ init_variables() {
     if [ "${ARCH}" = "x86" ]
     then
         export CFLAGS=-mno-android 
-    else	
-        export CROSS_COMPILE=arm-eabi-    
     fi
     echo >&3 "ARCH: $ARCH"
     echo >&3 "CROSS_COMPILE: $CROSS_COMPILE"
