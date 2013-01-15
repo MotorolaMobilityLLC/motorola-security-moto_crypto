@@ -16,6 +16,7 @@ endif
 NOSTDINC_FLAGS := $(CFLAGS)
 
 override EXTRA_CFLAGS += \
+    -fno-pic \
     -DKERNEL \
     -D_KERNEL \
     -I$(src)/include/
