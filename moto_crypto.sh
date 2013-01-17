@@ -10,6 +10,7 @@ exec 2>&1
 
 function exit_on_error {
     if [ "$1" -ne 0 ]; then
+        echo "$2 exited with error $1"
         exit 1
     fi
 }
@@ -64,7 +65,7 @@ init_variables() {
 
     if [ -z "${custom_board}" ]; then
         echo "No custom board specified"
-        exit_on_error 2
+        exit_on_error 2 custom_board
     fi
 
     case "${custom_board}" in
@@ -103,11 +104,16 @@ make_compat() {
 
     cd ${MODULE_DEST_TMP}
 
-    make ARCH=${ARCH} INSTALL_MOD_STRIP=--strip-unneeded KLIB=${MODULE_DEST_TMP} KLIB_BUILD=${KERNEL_BUILD_DIR} install-modules
-    exit_on_error $? quiet
+    echo "$0: MODULE_DEST_TMP=${MODULE_DEST_TMP}"
+    echo "$0: ls -l ${MODULE_DEST_TMP}/src"
+    echo `ls -l ${MODULE_DEST_TMP}/src`
+
+    echo "$0: make ARCH=${ARCH} INSTALL_MOD_STRIP=--strip-unneeded KLIB=${MODULE_DEST_TMP} KLIB_BUILD=${KERNEL_BUILD_DIR} install-modules"
+    make --debug=b ARCH=${ARCH} INSTALL_MOD_STRIP=--strip-unneeded KLIB=${MODULE_DEST_TMP} KLIB_BUILD=${KERNEL_BUILD_DIR} install-modules
+    exit_on_error $? make
 
     find ${MODULE_DEST_TMP} -name "*.ko" -exec cp -vf {} ${MODULE_DEST} \;
-    exit_on_error $? quiet
+    exit_on_error $? find
 
     echo " Generating moto_crypto HMAC"
     ${COMPAT_SRC_DIR}/scripts/fips_module_hmac.py 3c091d83745f3ed32cab47458950bca648561bc54d738fe5ee34235ff1100d4a ${MODULE_DEST}/moto_crypto.ko > ${MODULE_DEST}/moto_crypto_hmac_sha256
@@ -136,6 +142,8 @@ check_full_path() {
 }
 
 main() {
+    echo "$0 $*"
+
     local custom_board_list=""
 
     while getopts c:j:a:o:u: opt
@@ -194,7 +202,7 @@ main() {
         echo >&3 "---------------------------------"
         init_variables "$custom_board" $_target_arch $_kernel_out 
         make_compat ${custom_board} $_target_out
-        exit_on_error $?
+        exit_on_error $? make_compat
     done
     exit 0
 }
