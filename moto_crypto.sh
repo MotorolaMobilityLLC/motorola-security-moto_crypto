@@ -7,7 +7,6 @@
 exec 3>&2
 exec 2>&1
 
-
 function exit_on_error {
     if [ "$1" -ne 0 ]; then
         echo "$2 exited with error $1"
@@ -15,21 +14,8 @@ function exit_on_error {
     fi
 }
 
-
-
 # defaults
 TOP=`pwd`
-# Default the -j factor to a bit less than the number of CPUs
-if [ -e /proc/cpuinfo ] ; then
-    _jobs=`grep -c processor /proc/cpuinfo`
-    _jobs=$(($_jobs * 2 * 8 / 10))
-elif [ -e /usr/sbin/sysctl ] ; then
-    _jobs=`/usr/sbin/sysctl -n hw.ncpu`
-    _jobs=$(($_jobs * 2 * 8 / 10))
-else
-    _jobs=1
-    echo "WARNING: Unavailable to determine the number of CPUs, defaulting to ${_jobs} job."
-fi
 _target_arch=""
 _kernel_out=""
 _target_out=""
@@ -38,30 +24,8 @@ init_variables() {
     local custom_board=$1
 
     echo "Custom board = ${custom_board}"
-    echo "TARGET_TOOLS_PREFIX = ${TARGET_TOOLS_PREFIX}"
-
-    if [ -z "${CCACHE_TOOLS_PREFIX}" ]; then
-        echo >&3 "Warning: CCACHE_TOOLS_PREFIX was not set."
-	CCACHE_TOOLS_DIR=$TOP/prebuilt/linux-x86/ccache
-    fi
-    export PATH="`dirname ${TARGET_TOOLS_PREFIX}`:$PATH"
-    if [ -z "$CROSS_COMPILE" ];then
-        export CROSS_COMPILE="`basename ${TARGET_TOOLS_PREFIX}`"
-    fi
-    if [ ! -z ${USE_CCACHE} ]; then
-	export PATH="${CCACHE_TOOLS_DIR}:$PATH"
-        export CROSS_COMPILE="ccache $CROSS_COMPILE"
-    fi
     export ARCH=$2
-    if [ "${ARCH}" = "x86" ]
-    then
-        export CFLAGS=-mno-android 
-    fi
     echo >&3 "ARCH: $ARCH"
-    echo >&3 "CROSS_COMPILE: $CROSS_COMPILE"
-    echo >&3 "PATH: $PATH"
-    echo >&3 "CFLAGS: $CFLAGS"
-    echo >&3 "EXTRA_CFLAGS: $EXTRA_CFLAGS"
 
     if [ -z "${custom_board}" ]; then
         echo "No custom board specified"
@@ -76,8 +40,8 @@ init_variables() {
 	BOARD=${custom_board}
 	;;
     esac
-   #  Modify PRODUCT_OUT defenition to match IKJBOMAP2278's change,
-   #  otherwise this module will be missing when HW_CONFIG is set
+    #  Modify PRODUCT_OUT defenition to match IKJBOMAP2278's change,
+    #  otherwise this module will be missing when HW_CONFIG is set
     if [ "${HW_CONFIG}" == "" ]; then
        PRODUCT_OUT=${TOP}/out/target/product/${BOARD}
     else
@@ -121,12 +85,11 @@ make_compat() {
 }
 
 usage() {
-    echo "Usage: $0 [-c custom_board] [-j jobs]"
+    echo "Usage: $0 [-c custom_board]"
 
     echo ""
     echo " -c [generic_x86|vbox|mfld_cdk|mfld_pr2|mfld_gi|mfld_dv10|ctp_pr0|ctp_pr1|sc1|smi|henry|mrfl_vp|mrfl_hvp|mrfl_sle]"
     echo "                          custom board (target platform)"
-    echo " -j [jobs]                # of jobs to run simultaneously.  0=automatic"
 }
 
 check_full_path() {
@@ -146,7 +109,7 @@ main() {
 
     local custom_board_list=""
 
-    while getopts c:j:a:o:u: opt
+    while getopts c:a:o:u: opt
     do
         case "${opt}" in
         h)
@@ -155,22 +118,6 @@ main() {
             ;;
         c)
             custom_board_list="${OPTARG}"
-            ;;
-        j)
-            if [ ${OPTARG} -gt 0 ]; then
-                _jobs=${OPTARG}
-            else
-                if [ -e /proc/cpuinfo ] ; then
-                    _jobs=`grep -c processor /proc/cpuinfo`
-                    _jobs=$(($_jobs * 2 * 8 / 10))
-                elif [ -e /usr/sbin/sysctl ] ; then
-                    _jobs=`/usr/sbin/sysctl -n hw.ncpu`
-                    _jobs=$(($_jobs * 2 * 8 / 10))
-                else
-                    _jobs=1
-                    echo "WARNING: Unavailable to determine the number of CPUs, defaulting to ${_jobs} job."
-                fi
-            fi
             ;;
         C)
             _clean=1
@@ -198,7 +145,7 @@ main() {
     for custom_board in $custom_board_list
     do
         echo >&3
-        echo >&3 "Building moto_crypto kernel for $custom_board"
+        echo >&3 "Building moto_crypto for $custom_board"
         echo >&3 "---------------------------------"
         init_variables "$custom_board" $_target_arch $_kernel_out 
         make_compat ${custom_board} $_target_out
