@@ -17,7 +17,7 @@ endif
 TGT_OUT = $(TARGET_OUT)
 
 build_moto-crypto: $(INSTALLED_KERNEL_TARGET)
-	bash -x motorola/security/moto_crypto/moto_crypto.sh -c $(TGT_DEVICE) -a $(TGT_ARCH) -o $(TGT_KERNEL_INT) -u $(TGT_OUT)
+	TARGET_TOOLS_PREFIX="$(ANDROID_BUILD_TOP)/$(TARGET_TOOLS_PREFIX)" motorola/security/moto_crypto/moto_crypto.sh -c $(TGT_DEVICE) -a $(TGT_ARCH) -o $(TGT_KERNEL_INT) -u $(TGT_OUT)
 
 
 
