@@ -9,7 +9,7 @@ exec 2>&1
 
 function exit_on_error {
     if [ "$1" -ne 0 ]; then
-        echo "$2 exited with error $1"
+        echo >&3 "moto_crypto.sh: $2 exited with error $1"
         exit 1
     fi
 }
@@ -23,12 +23,20 @@ _target_out=""
 init_variables() {
     local custom_board=$1
 
-    echo "Custom board = ${custom_board}"
+    echo >&3 "moto_crypto.sh: custom board = ${custom_board}"
+    echo >&3 "moto_crypto.sh: TARGET_TOOLS_PREFIX = ${TARGET_TOOLS_PREFIX}"
+
+    #export PATH="`dirname ${TARGET_TOOLS_PREFIX}`:$PATH"
+    if [ -z "$CROSS_COMPILE" ];then
+        export CROSS_COMPILE="`basename ${TARGET_TOOLS_PREFIX}`"
+    fi
+
     export ARCH=$2
-    echo >&3 "ARCH: $ARCH"
+    echo >&3 "moto_crypto.sh: ARCH = $ARCH"
+    echo >&3 "moto_crypto.sh: CROSS_COMPILE = $CROSS_COMPILE"
 
     if [ -z "${custom_board}" ]; then
-        echo "No custom board specified"
+        echo >&3 "moto_crypto.sh: no custom board specified"
         exit_on_error 2 custom_board
     fi
 
@@ -51,7 +59,7 @@ init_variables() {
 }
 
 make_compat() {
-    echo "  Making moto_crypto module"
+    echo >&3 "moto_crypto.sh: making moto_crypto module"
     local COMPAT_SRC_DIR=$TOP/motorola/security/moto_crypto
     local MODULE_DEST_TMP=${PRODUCT_OUT}/moto_crypto
     local MODULE_DEST=${PRODUCT_OUT}/system/lib/modules
@@ -68,18 +76,13 @@ make_compat() {
 
     cd ${MODULE_DEST_TMP}
 
-    echo "$0: MODULE_DEST_TMP=${MODULE_DEST_TMP}"
-    echo "$0: ls -l ${MODULE_DEST_TMP}/src"
-    echo `ls -l ${MODULE_DEST_TMP}/src`
-
-    echo "$0: make ARCH=${ARCH} INSTALL_MOD_STRIP=--strip-unneeded KLIB=${MODULE_DEST_TMP} KLIB_BUILD=${KERNEL_BUILD_DIR} install-modules"
-    make --debug=b ARCH=${ARCH} INSTALL_MOD_STRIP=--strip-unneeded KLIB=${MODULE_DEST_TMP} KLIB_BUILD=${KERNEL_BUILD_DIR} install-modules
+    make ARCH=${ARCH} INSTALL_MOD_STRIP=--strip-unneeded KLIB=${MODULE_DEST_TMP} KLIB_BUILD=${KERNEL_BUILD_DIR} install-modules
     exit_on_error $? make
 
     find ${MODULE_DEST_TMP} -name "*.ko" -exec cp -vf {} ${MODULE_DEST} \;
     exit_on_error $? find
 
-    echo " Generating moto_crypto HMAC"
+    echo >&3 "moto_crypto.sh: generating moto_crypto HMAC"
     ${COMPAT_SRC_DIR}/scripts/fips_module_hmac.py 3c091d83745f3ed32cab47458950bca648561bc54d738fe5ee34235ff1100d4a ${MODULE_DEST}/moto_crypto.ko > ${MODULE_DEST}/moto_crypto_hmac_sha256
     cd ${TOP}
 }
@@ -144,7 +147,7 @@ main() {
 
     for custom_board in $custom_board_list
     do
-        echo >&3
+        echo >&3 "---------------------------------"
         echo >&3 "Building moto_crypto for $custom_board"
         echo >&3 "---------------------------------"
         init_variables "$custom_board" $_target_arch $_kernel_out 
