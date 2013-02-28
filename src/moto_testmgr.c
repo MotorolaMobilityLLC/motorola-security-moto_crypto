@@ -1608,7 +1608,7 @@ static int moto_test_hash(struct crypto_ahash *tfm,
 
         if (template[i].ksize) {
             crypto_ahash_clear_flags(tfm, ~0);
-            ret = crypto_ahash_setkey(tfm, template[i].key,
+            ret = crypto_ahash_setkey(tfm, (const u8 *)template[i].key,
                     template[i].ksize);
             if (ret) {
                 printk(KERN_ERR 
@@ -1619,7 +1619,7 @@ static int moto_test_hash(struct crypto_ahash *tfm,
             }
         }
 
-        ahash_request_set_crypt(req, sg, result, template[i].psize);
+        ahash_request_set_crypt(req, sg, (u8 *)result, template[i].psize);
         if (use_digest) {
             ret = moto_do_one_async_hash_op(req, &tresult,
                     crypto_ahash_digest(req));
@@ -1671,7 +1671,7 @@ static int moto_test_hash(struct crypto_ahash *tfm,
             printk(KERN_ERR 
                     "moto_crypto: hash: Test %d failed for %s\n",
                     j, algo);
-            moto_hexdump(result, crypto_ahash_digestsize(tfm));
+            moto_hexdump((unsigned char *)result, crypto_ahash_digestsize(tfm));
             ret = -EINVAL;
             goto out;
         }
@@ -1701,7 +1701,7 @@ static int moto_test_hash(struct crypto_ahash *tfm,
 
             if (template[i].ksize) {
                 crypto_ahash_clear_flags(tfm, ~0);
-                ret = crypto_ahash_setkey(tfm, template[i].key,
+                ret = crypto_ahash_setkey(tfm, (const u8 *)template[i].key,
                         template[i].ksize);
 
                 if (ret) {
@@ -1714,7 +1714,7 @@ static int moto_test_hash(struct crypto_ahash *tfm,
                 }
             }
 
-            ahash_request_set_crypt(req, sg, result,
+            ahash_request_set_crypt(req, sg, (u8 *)result,
                     template[i].psize);
             ret = crypto_ahash_digest(req);
             switch (ret) {
@@ -1742,7 +1742,7 @@ static int moto_test_hash(struct crypto_ahash *tfm,
                 printk(KERN_ERR 
                         "moto_crypto: hash: Chunking test %d "
                         "failed for %s\n", j, algo);
-                moto_hexdump(result, crypto_ahash_digestsize(tfm));
+                moto_hexdump((unsigned char *)result, crypto_ahash_digestsize(tfm));
                 ret = -EINVAL;
                 goto out;
             }
@@ -1819,7 +1819,7 @@ static int moto_test_skcipher(struct crypto_ablkcipher *tfm, int enc,
                 crypto_ablkcipher_set_flags(
                         tfm, CRYPTO_TFM_REQ_WEAK_KEY);
 
-            ret = crypto_ablkcipher_setkey(tfm, template[i].key,
+            ret = crypto_ablkcipher_setkey(tfm, (const u8 *)template[i].key,
                     template[i].klen);
             if (!ret == template[i].fail) {
                 printk(KERN_ERR 
@@ -1870,7 +1870,7 @@ static int moto_test_skcipher(struct crypto_ablkcipher *tfm, int enc,
                 printk(KERN_ERR 
                         "moto_crypto: skcipher: Test %d "
                         "failed on %s for %s\n", j, e, algo);
-                moto_hexdump(q, template[i].rlen);
+                moto_hexdump((unsigned char *)q, template[i].rlen);
                 ret = -EINVAL;
                 goto out;
             }
@@ -1893,7 +1893,7 @@ static int moto_test_skcipher(struct crypto_ablkcipher *tfm, int enc,
                 crypto_ablkcipher_set_flags(
                         tfm, CRYPTO_TFM_REQ_WEAK_KEY);
 
-            ret = crypto_ablkcipher_setkey(tfm, template[i].key,
+            ret = crypto_ablkcipher_setkey(tfm, (const u8 *)template[i].key,
                     template[i].klen);
             if (!ret == template[i].fail) {
                 printk(KERN_ERR 
@@ -1967,7 +1967,7 @@ static int moto_test_skcipher(struct crypto_ablkcipher *tfm, int enc,
                             "moto_crypto: skcipher: Chunk "
                             "test %d failed on %s at page "
                             "%u for %s\n", j, e, k, algo);
-                    moto_hexdump(q, template[i].tap[k]);
+                    moto_hexdump((unsigned char *)q, template[i].tap[k]);
                     goto out;
                 }
 
@@ -1981,7 +1981,7 @@ static int moto_test_skcipher(struct crypto_ablkcipher *tfm, int enc,
                             "chunk test %d on %s at page "
                             "%u for %s: %u bytes:\n", j, e,
                             k, algo, n);
-                    moto_hexdump(q, n);
+                    moto_hexdump((unsigned char *)q, n);
                     goto out;
                 }
                 temp += template[i].tap[k];
@@ -2036,7 +2036,7 @@ static int moto_test_cprng(struct crypto_rng *tfm,
         }
 
         for (j = 0; j < template[i].loops; j++) {
-            err = crypto_rng_get_bytes(tfm, result,
+            err = crypto_rng_get_bytes(tfm, (u8 *)result,
                     template[i].rlen);
             if (err != template[i].rlen) {
                 printk(KERN_ERR 
@@ -2061,7 +2061,7 @@ static int moto_test_cprng(struct crypto_rng *tfm,
             printk(KERN_ERR 
                     "moto_crypto: cprng: Test %d failed for %s\n",
                     i, algo);
-            moto_hexdump(result, template[i].rlen);
+            moto_hexdump((unsigned char *)result, template[i].rlen);
             err = -EINVAL;
             goto out;
         }
