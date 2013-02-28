@@ -137,7 +137,7 @@ static int moto_sha1_update(struct shash_desc *desc, const u8 *data,
         }
 
         do {
-            moto_sha_transform(sctx->state, src, temp);
+            moto_sha_transform(sctx->state, (const char *)src, temp);
             done += 64;
             src = data + done;
         } while (done + 63 < len);
