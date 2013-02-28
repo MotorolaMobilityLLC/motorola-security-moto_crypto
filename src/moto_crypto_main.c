@@ -63,7 +63,7 @@ static int parse_elf_sections(Elf_Ehdr* elf_ehdr,
 {
     int error = 0;
     Elf_Shdr *sechdrs;
-    char *secstrings;
+    unsigned char *secstrings;
     struct section_header_data *curr_sec_hdr;
     struct section_header_data *sec_hdrs;
     int num_valid_hdrs = 0;
@@ -121,7 +121,7 @@ static int section_header_data_name_cmp(const void* a, const void* b)
     const struct section_header_data* section_a = a;
     const struct section_header_data* section_b = b;
 
-    return strcmp(section_a->name, section_b->name);
+    return strcmp((const char *)section_a->name, (const char *)section_b->name);
 }
 
 /**
@@ -190,12 +190,12 @@ static int moto_crypto_canonicalize(struct module *mod,
     data = canonicalized_buffer;
     for (loop = 0; loop < elf_sections->nsects; loop++) {
         if (curr_sec_hdr->size > 0 &&
-                (strcmp(curr_sec_hdr->name,".strtab") != 0 &&
-                        strcmp(curr_sec_hdr->name,".symtab") != 0 &&
-                        strcmp(curr_sec_hdr->name,".modinfo") != 0 &&
-                        strcmp(curr_sec_hdr->name,"__versions") != 0 &&
-                        strcmp(curr_sec_hdr->name,".gnu.linkonce.this_module") != 0 &&
-                        strcmp(curr_sec_hdr->name,".note.gnu.build-id") != 0)) {
+                (strcmp((const char *)curr_sec_hdr->name,".strtab") != 0 &&
+                        strcmp((const char *)curr_sec_hdr->name,".symtab") != 0 &&
+                        strcmp((const char *)curr_sec_hdr->name,".modinfo") != 0 &&
+                        strcmp((const char *)curr_sec_hdr->name,"__versions") != 0 &&
+                        strcmp((const char *)curr_sec_hdr->name,".gnu.linkonce.this_module") != 0 &&
+                        strcmp((const char *)curr_sec_hdr->name,".note.gnu.build-id") != 0)) {
             memcpy(data, (void *)curr_sec_hdr->address, curr_sec_hdr->size);
             data += curr_sec_hdr->size;
             canonicalized_buffer_size += curr_sec_hdr->size;
