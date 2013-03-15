@@ -259,6 +259,15 @@ def writeTDESMonteResp(tdesData, tdesLogData):
         filenameParts = filename.split('.')
         respFile = open(filenameParts[0] + '.rsp', 'w')
         writeMonteResults(respFile, filename, resps, True)
+        tests = testData.get('DECRYPT')
+        if tests == None:
+            print 'Decryption test data not found for file', filename
+            continue
+        resps = encDec.get('0')
+        if resps == None:
+            print 'No log data for decryption tests found for file', filename
+            continue
+        writeMonteResults(respFile, filename, resps, False)
 
 def writeTDESResp(tdesData, tdesLogData):
     for filename, testData in tdesData.items():

@@ -4,6 +4,7 @@
 #include <linux/scatterlist.h>
 #include <linux/err.h>
 #include <linux/slab.h>
+#include <linux/module.h>
 
 static void moto_hexdump(unsigned char *buf, unsigned int len)
 {
