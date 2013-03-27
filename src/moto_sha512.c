@@ -24,9 +24,6 @@
 #include "moto_testmgr.h"
 #include "moto_crypto_util.h"
 
-static int moto_sha384_registered = 0;
-static int moto_sha512_registered = 0;
-
 static DEFINE_PER_CPU(u64[80], msg_schedule);
 
 static inline u64 Ch(u64 x, u64 y, u64 z)
@@ -296,7 +293,6 @@ int moto_sha512_start(void)
     ret = crypto_register_shash(&moto_sha384);
     if (ret)
         goto out;
-    moto_sha384_registered = 1;
     ret = moto_alg_test("moto-sha384", "sha384", 0, 0);
     printk (KERN_INFO "sha384 test result: %d\n", ret);
     if (ret)
@@ -304,7 +300,6 @@ int moto_sha512_start(void)
 
     ret = crypto_register_shash(&moto_sha512);
     if (!ret) {
-        moto_sha512_registered = 1;
         ret = moto_alg_test("moto-sha512", "sha512", 0, 0);
         printk (KERN_INFO "sha512 test result: %d\n", ret);
     }
@@ -314,18 +309,5 @@ int moto_sha512_start(void)
 
 void moto_sha512_finish(void)
 {
-    int err = 0;
-
-    if (moto_sha384_registered)
-    {
-        err = crypto_unregister_shash(&moto_sha384);
-        moto_sha384_registered = 0;
-    }
-    printk (KERN_INFO "sha384 unregister result: %d\n", err);
-    if (moto_sha512_registered)
-    {
-        err = crypto_unregister_shash(&moto_sha512);
-        moto_sha512_registered = 0;
-    }
-    printk (KERN_INFO "sha512 unregister result: %d\n", err);
+    printk (KERN_INFO "sha512 finish\n");
 }

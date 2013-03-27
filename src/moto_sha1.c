@@ -28,8 +28,6 @@
 #include "moto_testmgr.h"
 #include "moto_crypto_util.h"
 
-static int moto_sha1_registered = 0;
-
 /* The SHA f()-functions.  */
 
 #define f1(x,y,z)   (z ^ (x & (y ^ z)))		/* x ? y : z */
@@ -226,7 +224,6 @@ int moto_sha1_start(void)
     err = crypto_register_shash(&alg);
     printk (KERN_INFO "sha1 register result: %d\n", err);
     if (!err) {
-        moto_sha1_registered = 1;
         err = moto_alg_test("moto-sha1", "sha1", 0, 0);
         printk (KERN_INFO "sha1 test result: %d\n", err);
     }
@@ -235,12 +232,5 @@ int moto_sha1_start(void)
 
 void moto_sha1_finish(void)
 {
-    int err = 0;
-
-    if (moto_sha1_registered) 
-    {
-        err = crypto_unregister_shash(&alg);
-        moto_sha1_registered = 0;
-    }
-    printk (KERN_INFO "sha1 unregister result: %d\n", err);
+    printk (KERN_INFO "sha1 finish\n");
 }

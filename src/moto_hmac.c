@@ -31,8 +31,6 @@ struct moto_hmac_ctx {
     struct crypto_shash *hash;
 };
 
-static int moto_hmac_registered = 0;
-
 static inline void *align_ptr(void *p, unsigned int align)
 {
     return (void *)ALIGN((unsigned long)p, align);
@@ -269,7 +267,6 @@ int moto_hmac_start(void)
     err = crypto_register_template(&moto_hmac_tmpl);
     printk (KERN_INFO "moto_hmac register result: %d\n", err);
     if (!err) {
-        moto_hmac_registered = 1;
         err = moto_alg_test("moto_hmac(moto-sha1)", "moto_hmac(moto-sha1)", 0, 0);
         printk (KERN_INFO "moto_hmac(moto-sha1) test result: %d\n", err);
     }
@@ -295,10 +292,5 @@ int moto_hmac_start(void)
 
 void moto_hmac_finish(void)
 {
-    if (moto_hmac_registered) 
-    {
-        crypto_unregister_template(&moto_hmac_tmpl);
-        moto_hmac_registered = 0;
-    }
-    printk (KERN_INFO "hmac unregistered\n");
+    printk (KERN_INFO "hmac finish\n");
 }
