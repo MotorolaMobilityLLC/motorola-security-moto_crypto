@@ -28,9 +28,6 @@
 #include "moto_testmgr.h"
 #include "moto_crypto_util.h"
 
-static int moto_sha224_registered = 0;
-static int moto_sha256_registered = 0;
-
 static inline u32 Ch(u32 x, u32 y, u32 z)
 {
     return z ^ (x & (y ^ z));
@@ -391,7 +388,6 @@ int moto_sha256_start(void)
     printk (KERN_INFO "sha224 register result: %d\n", ret);
     if (ret) 
         return ret;
-    moto_sha224_registered = 1;
     ret = moto_alg_test("moto-sha224", "sha224", 0, 0);
     printk (KERN_INFO "sha224 test result: %d\n", ret);
     if (ret)
@@ -401,7 +397,6 @@ int moto_sha256_start(void)
     printk (KERN_INFO "sha256 register result: %d\n", ret);
 
     if (!ret) {
-        moto_sha256_registered = 1;
         ret = moto_alg_test("moto-sha256", "sha256", 0, 0);
         printk (KERN_INFO "sha256 test result: %d\n", ret);
     }
@@ -411,18 +406,5 @@ int moto_sha256_start(void)
 
 void moto_sha256_finish(void)
 {
-    int err = 0;
-
-    if (moto_sha224_registered) 
-    {
-        err = crypto_unregister_shash(&moto_sha224);
-        moto_sha224_registered = 0;
-    }
-    printk (KERN_INFO "sha224 unregister result: %d\n", err);
-    if (moto_sha256_registered)
-    {
-        err = crypto_unregister_shash(&moto_sha256);
-        moto_sha256_registered = 0;
-    }
-    printk (KERN_INFO "sha256 unregister result: %d\n", err);
+    printk (KERN_INFO "sha256 finish\n");
 }
