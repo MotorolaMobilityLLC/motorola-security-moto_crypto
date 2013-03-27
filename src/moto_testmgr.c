@@ -2453,7 +2453,7 @@ int moto_alg_test(const char *driver, const char *alg, u32 type, u32 mask)
     if (i >= 0)
         rc |= moto_alg_test_descs[i].test(moto_alg_test_descs + i, 
                 driver, type, mask);
-    if (j >= 0)
+    else if (j >= 0)
         rc |= moto_alg_test_descs[j].test(moto_alg_test_descs + j, 
                 driver, type, mask);
 
