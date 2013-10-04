@@ -14,6 +14,12 @@ LOCAL_MODULE_DEBUG_ENABLE := false
 LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules
 include $(DLKM_DIR)/AndroidKernelModule.mk
 
-.PHONY: build_moto-crypto
-build_moto-crypto: $(TARGET_OUT)/lib/modules/moto_crypto.ko
+include $(CLEAR_VARS)
+
+${TARGET_OUT}/lib/modules/moto_crypto_hmac_sha256: $(TARGET_OUT)/lib/modules/moto_crypto.ko
 	motorola/security/moto_crypto/scripts/fips_module_hmac.py 3c091d83745f3ed32cab47458950bca648561bc54d738fe5ee34235ff1100d4a $< > ${TARGET_OUT}/lib/modules/moto_crypto_hmac_sha256
+
+LOCAL_MODULE                  := generate_moto_crypto_signature
+LOCAL_MODULE_TAGS             := optional
+LOCAL_ADDITIONAL_DEPENDENCIES := ${TARGET_OUT}/lib/modules/moto_crypto_hmac_sha256
+include $(BUILD_PHONY_PACKAGE)
