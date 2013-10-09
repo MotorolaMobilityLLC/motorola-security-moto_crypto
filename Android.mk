@@ -1,10 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(call is-android-codename,JELLY_BEAN),true)
-       DLKM_DIR := $(TOP)/device/qcom/common/dlkm
-else
-       DLKM_DIR := build/dlkm
-endif
+DLKM_DIR := $(TOP)/device/qcom/common/dlkm
 
 include $(CLEAR_VARS)
 KBUILD_OPTIONS            := TARGET_BUILD_VARIANT=$(TARGET_BUILD_VARIANT)
