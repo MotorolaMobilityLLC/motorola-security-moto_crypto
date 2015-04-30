@@ -3,6 +3,7 @@ EXTRA_CFLAGS += -DCONFIG_CRYPTO_MOTOROLA_FAULT_INJECTION
 endif
 
 EXTRA_CFLAGS += \
+    -w \
     -fno-pic \
     -DKERNEL \
     -D_KERNEL \
