@@ -32,6 +32,8 @@
 #define MAX_KEYLEN          56
 #define MAX_IVLEN           32
 
+#define INIT_COMPLETION(x) ((x).done = 0)
+
 struct moto_hash_testvec {
     /* only used with keyed hash algorithms */
     char *key;
