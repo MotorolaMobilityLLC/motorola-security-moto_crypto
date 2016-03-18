@@ -5,6 +5,8 @@
 
 #define MAX_IVLEN		32
 
+#define INIT_COMPLETION(x) ((x).done = 0)
+
 struct moto_test_hash_testvec {
     /* only used with keyed hash algorithms */
     int count;
