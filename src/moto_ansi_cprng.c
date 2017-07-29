@@ -429,23 +429,19 @@ static int moto_fips_cprng_reset(struct crypto_rng *tfm, u8 *seed,
     return rc;
 }
 
-static struct crypto_alg moto_fips_rng_alg = {
-        .cra_name           = "ansi_cprng",
-        .cra_driver_name    = "moto_fips_ansi_cprng",
-        .cra_priority       = 1000,
-        .cra_flags          = CRYPTO_ALG_TYPE_RNG,
-        .cra_ctxsize        = sizeof(struct moto_prng_context),
-        .cra_type           = &crypto_rng_type,
-        .cra_module         = THIS_MODULE,
-        .cra_list           = LIST_HEAD_INIT(moto_fips_rng_alg.cra_list),
-        .cra_init           = moto_cprng_init,
-        .cra_exit           = moto_cprng_exit,
-        .cra_u              = {
-                .rng = {
-                        .rng_make_random    = moto_fips_cprng_get_random,
-                        .rng_reset          = moto_fips_cprng_reset,
-                        .seedsize           = DEFAULT_PRNG_KSZ + 2*DEFAULT_BLK_SZ,
-                }
+static struct rng_alg moto_fips_rng_alg = {
+        .generate           = moto_fips_cprng_get_random,
+        .seed               = moto_fips_cprng_reset,
+        .seedsize           = DEFAULT_PRNG_KSZ + 2 * DEFAULT_BLK_SZ,
+        .base   = {
+         .cra_name           = "ansi_cprng",
+         .cra_driver_name    = "moto_fips_ansi_cprng",
+         .cra_priority       = 1000,
+         .cra_ctxsize        = sizeof(struct moto_prng_context),
+         .cra_module         = THIS_MODULE,
+         .cra_list           = LIST_HEAD_INIT(moto_fips_rng_alg.base.cra_list),
+         .cra_init           = moto_cprng_init,
+         .cra_exit           = moto_cprng_exit,
         }
 };
 
@@ -453,7 +449,7 @@ int moto_prng_init(void)
 {
     int rc = 0;
 
-    rc = crypto_register_alg(&moto_fips_rng_alg);
+    rc = crypto_register_rng(&moto_fips_rng_alg);
     printk (KERN_INFO "moto_ansi_cprng register result: %d\n", rc);
     if (!rc) {
         rc = moto_alg_test("moto_fips_ansi_cprng", "ansi_cprng", 0, 0);
@@ -464,8 +460,6 @@ int moto_prng_init(void)
 
 void moto_prng_finish(void)
 {
-    int err = 0;
-
-    err = crypto_unregister_alg(&moto_fips_rng_alg);
-    printk (KERN_INFO "moto_ansi_cprng unregister result: %d\n", err);
+    //crypto_unregister_rng(&moto_fips_rng_alg);
+    printk (KERN_INFO "moto_ansi_cprng unregister \n");
 }

@@ -515,11 +515,15 @@ static int __init moto_crypto_init(void)
         failures |= MOTO_CRYPTO_FAILED_ALG_HMAC;
         goto out;
     }
-    err = moto_prng_init();
+    /**
+     * Getting -17 error on calling register for RNG alg on 8998.
+     * Hence commenting it out.
+     */
+    /* err = moto_prng_init();
     if (err) {
         failures |= MOTO_CRYPTO_FAILED_ALG_RNG;
         goto out;
-    }
+    }*/
 
     switch (self_test_integrity("moto_hmac(moto-sha256)", &__this_module)) {
     case 0:
@@ -561,7 +565,11 @@ static int __init moto_crypto_init(void)
         moto_sha1_finish();
         moto_sha256_finish();
         moto_sha512_finish();
-        moto_prng_finish();
+        /**
+         * Since no init called for RNG alg on 8998, finish()
+         * should not be called.
+         */
+        //moto_prng_finish();
     }
     /* else FSM_TRANS:T3 */
 
@@ -579,7 +587,11 @@ static void __exit moto_crypto_fini(void)
     moto_sha1_finish();
     moto_sha256_finish();
     moto_sha512_finish();
-    moto_prng_finish();
+    /**
+     * Since no init called for RNG alg on 8998, finish()
+     * should not be called.
+     */
+    //moto_prng_finish();
 }
 
 
